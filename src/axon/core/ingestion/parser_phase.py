@@ -52,7 +52,8 @@ def get_parser(language: str) -> LanguageParser:
     of tree-sitter ``Parser`` objects.
 
     Args:
-        language: One of ``"python"``, ``"typescript"``, or ``"javascript"``.
+        language: One of ``"python"``, ``"typescript"``, ``"javascript"``,
+            or ``"go"``.
 
     Returns:
         A :class:`LanguageParser` instance ready to parse source code.
@@ -79,10 +80,15 @@ def get_parser(language: str) -> LanguageParser:
 
         parser = TypeScriptParser(dialect="javascript")
 
+    elif language == "go":
+        from axon.core.parsers.go_lang import GoParser
+
+        parser = GoParser()
+
     else:
         raise ValueError(
             f"Unsupported language {language!r}. "
-            f"Expected one of: python, typescript, javascript"
+            f"Expected one of: python, typescript, javascript, go"
         )
 
     _PARSER_CACHE[language] = parser

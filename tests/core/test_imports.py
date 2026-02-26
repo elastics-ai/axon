@@ -19,7 +19,6 @@ from axon.core.ingestion.imports import (
 from axon.core.ingestion.parser_phase import FileParseData
 from axon.core.parsers.base import ImportInfo, ParseResult
 
-
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
@@ -37,6 +36,10 @@ _FILE_PATHS = [
     ("lib/utils.ts", "typescript"),
     ("lib/models/user.ts", "typescript"),
     ("lib/models/index.ts", "typescript"),
+    # Go files
+    ("cmd/app/main.go", "go"),
+    ("internal/auth/auth.go", "go"),
+    ("internal/tokens/tokens.go", "go"),
 ]
 
 
@@ -229,6 +232,52 @@ class TestResolveTsExternal:
     ) -> None:
         imp = ImportInfo(module="@types/node", names=[], is_relative=False)
         result = resolve_import_path("lib/index.ts", imp, file_index)
+        assert result is None
+
+
+# ---------------------------------------------------------------------------
+# resolve_import_path — Go
+# ---------------------------------------------------------------------------
+
+
+class TestResolveGoPackagePath:
+    """import "internal/auth" in cmd/app/main.go -> internal/auth/auth.go."""
+
+    def test_resolve_go_package_path(
+        self, file_index: dict[str, str]
+    ) -> None:
+        imp = ImportInfo(module="internal/auth", names=["auth"], is_relative=False)
+        result = resolve_import_path("cmd/app/main.go", imp, file_index)
+
+        expected_id = generate_id(NodeLabel.FILE, "internal/auth/auth.go")
+        assert result == expected_id
+
+
+class TestResolveGoModuleSuffix:
+    """Module-qualified import resolves by suffix matching."""
+
+    def test_resolve_go_module_suffix(
+        self, file_index: dict[str, str]
+    ) -> None:
+        imp = ImportInfo(
+            module="github.com/acme/project/internal/tokens",
+            names=["tokens"],
+            is_relative=False,
+        )
+        result = resolve_import_path("cmd/app/main.go", imp, file_index)
+
+        expected_id = generate_id(NodeLabel.FILE, "internal/tokens/tokens.go")
+        assert result == expected_id
+
+
+class TestResolveGoExternal:
+    """External Go imports resolve to None."""
+
+    def test_resolve_go_external(
+        self, file_index: dict[str, str]
+    ) -> None:
+        imp = ImportInfo(module="net/http", names=["http"], is_relative=False)
+        result = resolve_import_path("cmd/app/main.go", imp, file_index)
         assert result is None
 
 

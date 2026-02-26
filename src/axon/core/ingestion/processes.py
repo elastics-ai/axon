@@ -34,6 +34,12 @@ _PYTHON_DECORATOR_PATTERNS: tuple[str, ...] = (
     "@click.command",
 )
 
+_GO_ENTRYPOINT_NAMES: tuple[str, ...] = (
+    "main",
+    "init",
+    "servehttp",
+)
+
 def find_entry_points(graph: KnowledgeGraph) -> list[GraphNode]:
     """Find functions/methods that serve as execution entry points.
 
@@ -45,6 +51,7 @@ def find_entry_points(graph: KnowledgeGraph) -> list[GraphNode]:
       ``@app.route``, ``@router``, ``@click.command``.
     - **TypeScript**: functions named ``handler`` or ``middleware``,
       exported functions.
+    - **Go**: functions named ``main`` / ``init`` / ``ServeHTTP``.
 
     Each identified entry point has its ``is_entry_point`` attribute set
     to ``True``.
@@ -86,7 +93,7 @@ def _is_entry_point(node: GraphNode, graph: KnowledgeGraph) -> bool:
         return True
 
     if node.label == NodeLabel.FUNCTION and node.file_path.endswith(
-        ("__main__.py", "cli.py", "main.py", "app.py")
+        ("__main__.py", "cli.py", "main.py", "app.py", "main.go")
     ):
         return True
 
@@ -113,6 +120,10 @@ def _matches_framework_pattern(node: GraphNode) -> bool:
         if name in ("handler", "middleware"):
             return True
         if node.is_exported:
+            return True
+
+    if language in ("go", "") or node.file_path.endswith(".go"):
+        if name.lower() in _GO_ENTRYPOINT_NAMES:
             return True
 
     return False
