@@ -23,6 +23,7 @@ from axon.core.parsers.base import ImportInfo
 logger = logging.getLogger(__name__)
 
 _JS_TS_EXTENSIONS = (".ts", ".js", ".tsx", ".jsx")
+_GO_EXTENSION = ".go"
 
 def build_file_index(graph: KnowledgeGraph) -> dict[str, str]:
     """Build an index mapping file paths to their graph node IDs.
@@ -66,6 +67,8 @@ def resolve_import_path(
         return _resolve_python(importing_file, import_info, file_index)
     if language in ("typescript", "javascript"):
         return _resolve_js_ts(importing_file, import_info, file_index)
+    if language == "go":
+        return _resolve_go(importing_file, import_info, file_index)
 
     return None
 
@@ -119,6 +122,8 @@ def _detect_language(file_path: str) -> str:
         return "typescript"
     if suffix in (".js", ".jsx"):
         return "javascript"
+    if suffix == ".go":
+        return "go"
     return ""
 
 def _resolve_python(
@@ -254,3 +259,81 @@ def _try_js_ts_paths(base_path: str, file_index: dict[str, str]) -> str | None:
             return file_index[candidate]
 
     return None
+
+
+def _resolve_go(
+    importing_file: str,
+    import_info: ImportInfo,
+    file_index: dict[str, str],
+) -> str | None:
+    """Resolve a Go import to a file node ID.
+
+    Go imports are package paths, not file paths. We resolve them using
+    best-effort package directory matching:
+
+    1. Relative imports (rare): resolve against the importing file directory.
+    2. Exact package-dir match (e.g. ``internal/auth``).
+    3. Suffix match for full module paths
+       (e.g. ``github.com/acme/project/internal/auth`` -> ``internal/auth``).
+    """
+    module = import_info.module.strip().strip("\"").strip("`")
+    if not module:
+        return None
+
+    if module.startswith("."):
+        base = PurePosixPath(importing_file).parent
+        resolved = str(PurePosixPath(*(base / module).parts))
+        return _try_go_paths(resolved, file_index)
+
+    # Try exact path first.
+    target = _try_go_paths(module, file_index)
+    if target is not None:
+        return target
+
+    # For module-qualified imports, progressively drop leading segments
+    # and retry on suffixes.
+    parts = [p for p in module.split("/") if p]
+    for idx in range(1, len(parts)):
+        suffix = "/".join(parts[idx:])
+        target = _try_go_paths(suffix, file_index)
+        if target is not None:
+            return target
+
+    return None
+
+
+def _try_go_paths(base_path: str, file_index: dict[str, str]) -> str | None:
+    """Try common Go package-to-file resolution patterns for *base_path*."""
+    base_path = str(PurePosixPath(base_path))
+
+    # 1) Import path points directly at a file.
+    if base_path in file_index:
+        return file_index[base_path]
+    if f"{base_path}{_GO_EXTENSION}" in file_index:
+        return file_index[f"{base_path}{_GO_EXTENSION}"]
+
+    # 2) Resolve package directory to one .go file in that directory.
+    base_parent = PurePosixPath(base_path)
+    package_files = sorted(
+        p
+        for p in file_index
+        if p.endswith(_GO_EXTENSION) and PurePosixPath(p).parent == base_parent
+    )
+    if not package_files:
+        return None
+
+    # Prefer package-name convention (<dir>/<dir>.go), then main.go, then first.
+    package_name = PurePosixPath(base_path).name
+    preferred = f"{base_path}/{package_name}{_GO_EXTENSION}"
+    if preferred in file_index:
+        return file_index[preferred]
+
+    main_candidate = f"{base_path}/main{_GO_EXTENSION}"
+    if main_candidate in file_index:
+        return file_index[main_candidate]
+
+    for file_path in package_files:
+        if not file_path.endswith("_test.go"):
+            return file_index[file_path]
+
+    return file_index[package_files[0]]

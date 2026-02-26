@@ -9,13 +9,14 @@ from pathlib import Path
 from axon.config.ignore import should_ignore
 from axon.config.languages import get_language, is_supported
 
+
 @dataclass
 class FileEntry:
     """A source file discovered during walking."""
 
     path: str  # relative path from repo root (e.g., "src/auth/validate.py")
     content: str  # full file content
-    language: str  # "python", "typescript", "javascript"
+    language: str  # "python", "typescript", "javascript", "go"
 
 def discover_files(
     repo_path: Path,

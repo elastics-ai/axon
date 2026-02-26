@@ -5,7 +5,7 @@ from __future__ import annotations
 import pytest
 
 from axon.core.graph.graph import KnowledgeGraph
-from axon.core.graph.model import NodeLabel, RelType, generate_id, GraphNode
+from axon.core.graph.model import GraphNode, NodeLabel, RelType, generate_id
 from axon.core.ingestion.parser_phase import (
     FileParseData,
     get_parser,
@@ -13,9 +13,9 @@ from axon.core.ingestion.parser_phase import (
     process_parsing,
 )
 from axon.core.ingestion.walker import FileEntry
+from axon.core.parsers.go_lang import GoParser
 from axon.core.parsers.python_lang import PythonParser
 from axon.core.parsers.typescript import TypeScriptParser
-
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -46,6 +46,17 @@ def graph() -> KnowledgeGraph:
             name="app.ts",
             file_path="src/app.ts",
             language="typescript",
+        )
+    )
+
+    # Go file node
+    g.add_node(
+        GraphNode(
+            id=generate_id(NodeLabel.FILE, "src/service.go"),
+            label=NodeLabel.FILE,
+            name="service.go",
+            file_path="src/service.go",
+            language="go",
         )
     )
 
@@ -86,6 +97,16 @@ function add(a, b) {
 }
 """
 
+GO_CODE = """\
+package service
+
+type Service struct{}
+
+func NewService(name string) *Service {
+    return &Service{}
+}
+"""
+
 
 def _make_file_entry(
     path: str, content: str, language: str
@@ -122,6 +143,14 @@ class TestGetParserJavaScript:
         parser = get_parser("javascript")
         assert isinstance(parser, TypeScriptParser)
         assert parser.dialect == "javascript"
+
+
+class TestGetParserGo:
+    """get_parser returns GoParser for 'go'."""
+
+    def test_get_parser_go(self) -> None:
+        parser = get_parser("go")
+        assert isinstance(parser, GoParser)
 
 
 class TestGetParserUnsupported:
@@ -174,6 +203,21 @@ class TestParseFileTypeScript:
         assert "Config" in symbol_names
         assert "App" in symbol_names
         assert "run" in symbol_names
+
+
+class TestParseFileGo:
+    """parse_file parses Go source and returns correct symbols."""
+
+    def test_parse_file_go(self) -> None:
+        data = parse_file("src/service.go", GO_CODE, "go")
+
+        assert isinstance(data, FileParseData)
+        assert data.file_path == "src/service.go"
+        assert data.language == "go"
+
+        symbol_names = [s.name for s in data.parse_result.symbols]
+        assert "Service" in symbol_names
+        assert "NewService" in symbol_names
 
 
 # ---------------------------------------------------------------------------

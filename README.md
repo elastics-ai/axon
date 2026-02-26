@@ -299,6 +299,7 @@ impact  -> "Tip: Review each affected symbol before making changes."
 | Python | `.py` | tree-sitter-python |
 | TypeScript | `.ts`, `.tsx` | tree-sitter-typescript |
 | JavaScript | `.js`, `.jsx`, `.mjs`, `.cjs` | tree-sitter-javascript |
+| Go | `.go` | tree-sitter-go |
 
 ---
 
@@ -449,7 +450,7 @@ Examples:
 ## Architecture
 
 ```
-Source Code (.py, .ts, .js, .tsx, .jsx)
+Source Code (.py, .ts, .tsx, .js, .jsx, .mjs, .cjs, .go)
     |
     v
 +----------------------------------------------+
