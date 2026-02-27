@@ -13,6 +13,8 @@ SUPPORTED_EXTENSIONS: dict[str, str] = {
     ".mjs": "javascript",
     ".cjs": "javascript",
     ".go": "go",
+    ".yaml": "yaml",
+    ".yml": "yaml",
 }
 
 def get_language(file_path: str | Path) -> str | None:

@@ -6,8 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from axon.core.ingestion.walker import FileEntry, discover_files, walk_repo
-
+from axon.core.ingestion.walker import discover_files, walk_repo
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -28,6 +27,8 @@ def tmp_repo(tmp_path: Path) -> Path:
         |       +-- main.cpython-311.pyc  (should be ignored)
         +-- lib/
         |   +-- index.ts         ("export function hello() {}")
+        +-- infra/
+        |   +-- deployment.yaml  (Kubernetes manifest)
         +-- node_modules/
         |   +-- pkg/
         |       +-- index.js     (should be ignored)
@@ -49,6 +50,14 @@ def tmp_repo(tmp_path: Path) -> Path:
     lib = tmp_path / "lib"
     lib.mkdir()
     (lib / "index.ts").write_text("export function hello() {}", encoding="utf-8")
+
+    # infra/
+    infra = tmp_path / "infra"
+    infra.mkdir()
+    (infra / "deployment.yaml").write_text(
+        "kind: Deployment\nmetadata:\n  name: api\n",
+        encoding="utf-8",
+    )
 
     # node_modules/
     nm = tmp_path / "node_modules" / "pkg"
@@ -78,6 +87,7 @@ class TestWalkRepoFindsSourceFiles:
         assert "src/main.py" in paths
         assert "src/utils.py" in paths
         assert "lib/index.ts" in paths
+        assert "infra/deployment.yaml" in paths
 
 
 class TestWalkRepoIgnoresPycache:
@@ -130,6 +140,10 @@ class TestWalkRepoReadsContent:
         assert by_path["src/main.py"].content == "def main(): pass"
         assert by_path["src/utils.py"].content == "def helper(): pass"
         assert by_path["lib/index.ts"].content == "export function hello() {}"
+        assert (
+            by_path["infra/deployment.yaml"].content
+            == "kind: Deployment\nmetadata:\n  name: api\n"
+        )
 
 
 class TestWalkRepoDetectsLanguage:
@@ -142,6 +156,7 @@ class TestWalkRepoDetectsLanguage:
         assert by_path["src/main.py"].language == "python"
         assert by_path["src/utils.py"].language == "python"
         assert by_path["lib/index.ts"].language == "typescript"
+        assert by_path["infra/deployment.yaml"].language == "yaml"
 
 
 class TestWalkRepoSorted:
@@ -167,6 +182,7 @@ class TestDiscoverFiles:
         assert "src/main.py" in rel_paths
         assert "src/utils.py" in rel_paths
         assert "lib/index.ts" in rel_paths
+        assert "infra/deployment.yaml" in rel_paths
 
         # Should exclude ignored / unsupported
         for p in paths:

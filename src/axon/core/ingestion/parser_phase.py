@@ -53,7 +53,7 @@ def get_parser(language: str) -> LanguageParser:
 
     Args:
         language: One of ``"python"``, ``"typescript"``, ``"javascript"``,
-            or ``"go"``.
+            ``"go"``, or ``"yaml"``.
 
     Returns:
         A :class:`LanguageParser` instance ready to parse source code.
@@ -85,10 +85,15 @@ def get_parser(language: str) -> LanguageParser:
 
         parser = GoParser()
 
+    elif language == "yaml":
+        from axon.core.parsers.yaml_lang import YamlParser
+
+        parser = YamlParser()
+
     else:
         raise ValueError(
             f"Unsupported language {language!r}. "
-            f"Expected one of: python, typescript, javascript, go"
+            f"Expected one of: python, typescript, javascript, go, yaml"
         )
 
     _PARSER_CACHE[language] = parser

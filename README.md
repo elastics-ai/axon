@@ -300,6 +300,7 @@ impact  -> "Tip: Review each affected symbol before making changes."
 | TypeScript | `.ts`, `.tsx` | tree-sitter-typescript |
 | JavaScript | `.js`, `.jsx`, `.mjs`, `.cjs` | tree-sitter-javascript |
 | Go | `.go` | tree-sitter-go |
+| YAML | `.yaml`, `.yml` | line-based parser |
 
 ---
 
@@ -450,7 +451,7 @@ Examples:
 ## Architecture
 
 ```
-Source Code (.py, .ts, .tsx, .js, .jsx, .mjs, .cjs, .go)
+Source Code (.py, .ts, .tsx, .js, .jsx, .mjs, .cjs, .go, .yaml, .yml)
     |
     v
 +----------------------------------------------+
