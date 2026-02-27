@@ -16,6 +16,7 @@ from axon.core.ingestion.walker import FileEntry
 from axon.core.parsers.go_lang import GoParser
 from axon.core.parsers.python_lang import PythonParser
 from axon.core.parsers.typescript import TypeScriptParser
+from axon.core.parsers.yaml_lang import YamlParser
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -57,6 +58,17 @@ def graph() -> KnowledgeGraph:
             name="service.go",
             file_path="src/service.go",
             language="go",
+        )
+    )
+
+    # YAML file node
+    g.add_node(
+        GraphNode(
+            id=generate_id(NodeLabel.FILE, "infra/deployment.yaml"),
+            label=NodeLabel.FILE,
+            name="deployment.yaml",
+            file_path="infra/deployment.yaml",
+            language="yaml",
         )
     )
 
@@ -107,6 +119,12 @@ func NewService(name string) *Service {
 }
 """
 
+YAML_CODE = """\
+kind: Deployment
+metadata:
+  name: api
+"""
+
 
 def _make_file_entry(
     path: str, content: str, language: str
@@ -151,6 +169,14 @@ class TestGetParserGo:
     def test_get_parser_go(self) -> None:
         parser = get_parser("go")
         assert isinstance(parser, GoParser)
+
+
+class TestGetParserYaml:
+    """get_parser returns YamlParser for 'yaml'."""
+
+    def test_get_parser_yaml(self) -> None:
+        parser = get_parser("yaml")
+        assert isinstance(parser, YamlParser)
 
 
 class TestGetParserUnsupported:
@@ -218,6 +244,20 @@ class TestParseFileGo:
         symbol_names = [s.name for s in data.parse_result.symbols]
         assert "Service" in symbol_names
         assert "NewService" in symbol_names
+
+
+class TestParseFileYaml:
+    """parse_file parses YAML source and returns a document symbol."""
+
+    def test_parse_file_yaml(self) -> None:
+        data = parse_file("infra/deployment.yaml", YAML_CODE, "yaml")
+
+        assert isinstance(data, FileParseData)
+        assert data.file_path == "infra/deployment.yaml"
+        assert data.language == "yaml"
+
+        symbol_names = [s.name for s in data.parse_result.symbols]
+        assert "Deployment/api" in symbol_names
 
 
 # ---------------------------------------------------------------------------

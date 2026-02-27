@@ -16,7 +16,7 @@ class FileEntry:
 
     path: str  # relative path from repo root (e.g., "src/auth/validate.py")
     content: str  # full file content
-    language: str  # "python", "typescript", "javascript", "go"
+    language: str  # "python", "typescript", "javascript", "go", "yaml"
 
 def discover_files(
     repo_path: Path,

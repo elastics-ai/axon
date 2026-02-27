@@ -153,6 +153,12 @@ class TestGetLanguage:
     def test_go(self) -> None:
         assert get_language("cmd/api/main.go") == "go"
 
+    def test_yaml(self) -> None:
+        assert get_language("infra/deployment.yaml") == "yaml"
+
+    def test_yml(self) -> None:
+        assert get_language("infra/deployment.yml") == "yaml"
+
     def test_unsupported_md(self) -> None:
         assert get_language("README.md") is None
 
@@ -180,6 +186,12 @@ class TestIsSupported:
 
     def test_supported_go(self) -> None:
         assert is_supported("main.go") is True
+
+    def test_supported_yaml(self) -> None:
+        assert is_supported("deployment.yaml") is True
+
+    def test_supported_yml(self) -> None:
+        assert is_supported("deployment.yml") is True
 
     def test_not_supported_md(self) -> None:
         assert is_supported("README.md") is False
